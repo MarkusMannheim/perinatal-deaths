@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155991615-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-155991615-1');
+    </script>
+    <!-- my stuff -->
+    <meta charset="utf-8">
+    <title>Queensland birthing services</title>
+    <meta name="author" content="Markus Mannheim">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Initial scripts -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.css" rel="stylesheet">
+    <link href="./resources/qldStyle.css" rel="stylesheet">
+    <link href="./resources/abcLogo64.png" rel="icon">
+  </head>
+  <body>
+    <!-- Initial page layout -->
+    <div id="map"></div>
+    <div id="ticker">
+      <h1 id="year"></h1>
+      <p id="open">OPEN</p>
+      <p id="close">CLOSED</p>
+    </div>
+    <script>
+      // load data
+      d3.json("./resources/qldGeoData.geojson", function(error, data) {
+        if (error) throw error;
+        qldData = data;
+        // date variables
+        ticker = d3.select("#ticker");
+        // set up MapBox engine
+        mapboxgl.accessToken = "pk.eyJ1IjoibmV3cy1vbjFpbmUiLCJhIjoiR3FlZFZlVSJ9._30EFE9XYhQitqf4gzRG-g";
+        map = new mapboxgl.Map({
+          container: "map",
+          style: "mapbox://styles/mapbox/light-v10",
+          center: [144.431667, -22.486944],
+          attributionControl: false,
+          interactive: false
+        });
+        // add navigation and custom attribution
+        map.on("load", function() {
+          map.addControl(new mapboxgl.AttributionControl({
+              compact: true
+            }))
+            .resize();
+          let attribution = d3.select(".mapboxgl-ctrl-attrib-inner");
+          attribution.html("Data sources: Australian Institute of Health & Welfare, Queensland Health | " + attribution.html());
+          attribution.html(attribution.html().slice(0, -250));
+          // svg layer
+          container = map.getCanvasContainer();
+          svg = d3.select(container)
+            .append("svg")
+            .attr("id", "svg");
+          svgGroup = svg
+            .append("g")
+            .attr("id", "svgGroup");
+          // map calculations
+          margin = { top: 16, bottom: 16, left: 16, right: 16 };
+          projection = calcProjection();
+          path = d3.geoPath()
+            .pointRadius(document.body.getBoundingClientRect().width < 500 ? 5 : 7);
+          // re-render SVGs upon movement
+          map.on("viewreset", render)
+            .on("move", render)
+            .on("move", render);
+          // initial zoom
+          map.fitBounds(d3.geoBounds(qldData), {
+            animate: false,
+            padding: margin
+          });
+          begin();
+        });
+      });
+
+      function begin() {
+        hospitals = svgGroup
+          .selectAll(".hospital")
+            .data(qldData.features)
+          .enter().append("path")
+            .classed("hospital", true)
+            .attr("d", path)
+            .transition()
+              .duration(1000)
+              .delay(function(d, i) { return i * 1000 / qldData.features.length; })
+              .style("opacity", function(d) { return d.properties.start ? .75 : 0; });
+        year = 1996;
+        ticker.select("#year")
+          .text(year);
+        d3.selectAll("#year, #open, #close")
+          .transition()
+            .duration(2000)
+            .style("opacity", 1);
+        d3.timeout(timer, 2000);
+      }
+
+      function timer() {
+        interval = d3.interval(function() {
+
+        }, 1000);
+      }
+
+      // draw hospitals
+      function draw() {
+        hospitals = svgGroup
+          .selectAll(".hospital")
+            .data(qldData.features)
+          .enter().append("path")
+            .classed("hospital", true)
+            .style("opacity", );
+      }
+
+      // re-renders SVG when map moves
+      function render() {
+        projection = calcProjection();
+        path.projection(projection);
+        // draw SVGs
+        d3.selectAll(".hospital")
+          .attr("d", path);
+      }
+      // recalculates D3 map projection when map moves
+      function calcProjection() {
+        height = document.body.getBoundingClientRect().height;
+        width = document.body.getBoundingClientRect().width;
+        center = map.getCenter();
+        zoom = map.getZoom();
+        scale = 256 / Math.PI * Math.pow(2, zoom);
+        return d3.geoMercator()
+          .center([center.lng, center.lat])
+          .translate([width / 2, height / 2])
+          .scale(scale);
+      }
+    </script>
+  </body>
+</html>

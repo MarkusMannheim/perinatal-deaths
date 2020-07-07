@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155991615-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-155991615-1');
+    </script>
+    <!-- my stuff -->
+    <meta charset="utf-8">
+    <title>Potentially avoidable deaths</title>
+    <meta name="author" content="Markus Mannheim">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Initial scripts -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <link href="./resources/mapStyle.css" rel="stylesheet">
+    <link href="./resources/abcLogo64.png" rel="icon">
+  </head>
+  <body>
+    <!-- Initial page layout -->
+    <div id="map">
+      <svg id="svg">
+        <defs>
+          <linearGradient id="gradient" x1="0%" x2="100%" y1="0%" y2="0%"></linearGradient>
+        </defs>
+        <g id="svgGroup"></g>
+        <g id="legend">
+          <text id="label" y="-5">perinatal death rate</text>
+          <rect height="20"></rect>
+          <g id="axis" transform="translate(0, 20)"></g>
+        </g>
+      </svg>
+    </div>
+    <script>
+      // load data
+      d3.json("./resources/perinatal.topojson", function(error, data) {
+        if (error) throw error;
+        // format data
+        regionData = topojson.feature(data, data.objects.regions);
+        // elements
+        map = d3.select("#map");
+        svg = d3.select("#svg");
+        svgGroup = d3.select("#svgGroup");
+        // map calculations
+        projection = d3.geoIdentity();
+        path = d3.geoPath()
+          .projection(projection);
+        // legend
+        legend = d3.select("#legend");
+        d3.select("#gradient")
+          .selectAll("stop")
+            .data(d3.range(11))
+          .enter().append("stop")
+            .attr("offset", function(d) { return d * 10 + "%"; })
+            .attr("style", function(d) { return "stop-color: " + d3.interpolateRdYlGn(1 - d / 10) + "; stop-opacity: 1;"; });
+        colours = d3.scaleSequential(d3.interpolateRdYlGn)
+          .domain(d3.extent(regionData.features, function(d) { return d.properties.rate; }).reverse());
+        axisGroup = d3.select("#axis");
+        x = d3.scaleLinear()
+          .domain(colours.domain().reverse());
+        axis = d3.axisBottom(x)
+          .ticks(5)
+          .tickSizeOuter(0);
+        // set up SVGs
+        regions = svgGroup
+          .selectAll(".region")
+            .data(regionData.features)
+          .enter().append("path")
+            .classed("region", true)
+            .style("fill", function(d) { return colours(d.properties.rate); });
+        window.addEventListener("resize", resize);
+        resize();
+      });
+      // window resize
+      function resize() {
+        width = map.node().getBoundingClientRect().width;
+        height = map.node().getBoundingClientRect().height;
+        legendWidth = width * .6;
+        projection.fitSize([width, height], regionData);
+        legend.attr("transform", "translate(5, " + (height - 40) + ")");
+        legend.select("rect").attr("width", legendWidth);
+        x.range([0, legendWidth]);
+        axisGroup.call(axis);
+        d3.select("#label").attr("x", legendWidth / 2);
+        regions.attr("d", path);
+      }
+    </script>
+  </body>
+</html>
