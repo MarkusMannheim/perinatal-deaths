@@ -26,12 +26,12 @@
     <div id="map"></div>
     <div id="ticker">
       <h1 id="year"></h1>
-      <p id="open">OPEN</p>
-      <p id="close">CLOSED</p>
+      <div id="open" class="legend"><div>open</div><div></div></div>
+      <div id="close" class="legend"><div>closed</div><div></div></div>
     </div>
     <script>
       // load data
-      d3.json("./resources/qldGeoData.geojson", function(error, data) {
+      d3.json("./resources/qldHospitals.geojson", function(error, data) {
         if (error) throw error;
         qldData = data;
         // date variables
@@ -86,14 +86,17 @@
             .data(qldData.features)
           .enter().append("path")
             .classed("hospital", true)
-            .attr("d", path)
-            .transition()
-              .duration(1000)
-              .delay(function(d, i) { return i * 1000 / qldData.features.length; })
-              .style("opacity", function(d) { return d.properties.start ? .75 : 0; });
+            .attr("d", path);
+        hospitals.transition()
+          .duration(1000)
+          .delay(function(d, i) { return i * 1000 / qldData.features.length; })
+          .style("opacity", function(d) { return d.properties.start ? .8 : 0; });
         year = 1996;
         ticker.select("#year")
           .text(year);
+        ticker.transition()
+          .duration(1000)
+          .style("opacity", 1);
         d3.selectAll("#year, #open, #close")
           .transition()
             .duration(2000)
@@ -103,18 +106,48 @@
 
       function timer() {
         interval = d3.interval(function() {
-
-        }, 1000);
+          ticker.select("#year")
+            .text(year);
+          hospitals.each(function(d) {
+            if (d.properties.open == year) {
+              d3.select(this)
+                .style("opacity", 1)
+                .style("fill", "white")
+                .transition()
+                  .duration(500)
+                  .style("opacity", .8)
+                  .style("fill", "#01CFFF");
+              console.log("open: " + d.properties.hospital);
+            }
+            if (d.properties.close == year) {
+              d3.select(this)
+                .style("opacity", 1)
+                .style("fill", "#FFB300")
+                .transition()
+                  .duration(500)
+                  .style("opacity", .8)
+                  .style("fill", "#FF6100");
+              console.log("close: " + d.properties.hospital);
+            }
+          });
+          year++;
+          if (year > 2018) {
+            interval.stop();
+            d3.timeout(reset, 2000);
+          }
+        }, 500);
       }
 
-      // draw hospitals
-      function draw() {
-        hospitals = svgGroup
-          .selectAll(".hospital")
-            .data(qldData.features)
-          .enter().append("path")
-            .classed("hospital", true)
-            .style("opacity", );
+      function reset() {
+        hospitals.transition()
+          .duration(1000)
+          .delay(function(d, i) { return i * 1000 / qldData.features.length; })
+          .style("opacity", function(d) { return d.properties.start ? .8 : 0; })
+          .style("fill", "#01CFFF");
+        year = 1996;
+        ticker.select("#year")
+          .text(year);
+        d3.timeout(timer, 1000);
       }
 
       // re-renders SVG when map moves

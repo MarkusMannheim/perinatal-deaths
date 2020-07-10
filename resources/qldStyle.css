@@ -28,8 +28,8 @@ body {
   height:100%;
 }
 .hospital {
-  fill: #009CBF;
-  stroke: white;
+  fill: #01CFFF;
+  stroke: #1C1C1C;
   opacity: 0;
 }
 #ticker {
@@ -38,28 +38,44 @@ body {
   padding: 5px;
   text-shadow: 2px 2px 5px white;
   text-align: right;
+  opacity: 0;
 }
 h1, p {
   margin: 0;
   opacity: 0;
 }
 h1 {
-  font-size: 2rem;
+  font-size: 1.75rem;
 }
 #open {
   color: #009CBF;
 }
+#open div:last-child {
+  background-color: #01CFFF;
+}
 #close {
   color: #F75F00;
 }
+#close div:last-child {
+  background-color: #FF6100;
+}
+.legend {
+  font-weight: bold;
+  font-family: "ABCSans Regular", "Arial", sans-serif;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+.legend div:last-child {
+  margin: 0 0 .25rem .5rem;
+  width: 1rem;
+  border-radius: 1rem;
+  border: solid 1px #1C1C1C;
+  background-color: white;
+  box-shadow: 2px 2px 5px white;
+}
 @media only screen and (min-width: 500px) {
-  #ticker {
-    text-shadow: 3px 3px 5px white;
-  }
   h1 {
-    font-size: 2.5rem;
-  }
-  p {
-    font-size: 1.25rem;
+    font-size: 2.25rem;
   }
 }
