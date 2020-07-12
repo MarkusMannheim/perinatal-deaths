@@ -18,14 +18,14 @@
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.js"></script>
     <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.css" rel="stylesheet">
-    <link href="./resources/qldStyle.css" rel="stylesheet">
+    <link href="./resources/mapStyle.css" rel="stylesheet">
     <link href="./resources/abcLogo64.png" rel="icon">
   </head>
   <body>
     <!-- Initial page layout -->
     <div id="map"></div>
     <div id="ticker">
-      <h1 id="year"></h1>
+      <div id="year"></div>
       <div id="open" class="legend"><div>open</div><div></div></div>
       <div id="close" class="legend"><div>closed</div><div></div></div>
     </div>
@@ -195,6 +195,7 @@
       // mouseover or touch
       function mouseover(d) {
         d3.select(this.parentNode)
+          .raise()
           .select(".hospital")
             .attr("d", function(d) { return path.pointRadius(width < 500 ? 7.5 : 10.5)(d.data)});
         centroid = projection(d.data.geometry.coordinates);
