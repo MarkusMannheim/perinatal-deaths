@@ -7,7 +7,6 @@
 :root {
   font-size: 1em;
   font-family: "ABCSans Black", "Arial Black", sans-serif;
-  color: #1C1C1C;
 }
 body {
   margin: 0;
@@ -39,6 +38,7 @@ body {
   text-shadow: 2px 2px 5px white;
   text-align: right;
   opacity: 0;
+  color: #1C1C1C;
 }
 h1, p {
   margin: 0;
@@ -73,6 +73,22 @@ h1 {
   border: solid 1px #1C1C1C;
   background-color: white;
   box-shadow: 2px 2px 5px white;
+}
+.cell .voronoi {
+  fill: rgba(0, 0, 0, 0);
+  pointer-events: all;
+}
+#tip {
+  position: absolute;
+  opacity: 0;
+  text-align: center;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: rgba(28, 28, 28, .75);
+  pointer-events: none;
+  color: white;
+  font-size: .8rem;
+  font-family: "ABCSans Regular", "Arial", sans-serif;
 }
 @media only screen and (min-width: 500px) {
   h1 {

@@ -29,6 +29,7 @@
       <div id="open" class="legend"><div>open</div><div></div></div>
       <div id="close" class="legend"><div>closed</div><div></div></div>
     </div>
+    <div id="tip"></div>
     <script>
       // load data
       d3.json("./resources/qldHospitals.geojson", function(error, data) {
@@ -67,30 +68,45 @@
           projection = calcProjection();
           path = d3.geoPath()
             .pointRadius(document.body.getBoundingClientRect().width < 500 ? 5 : 7);
+          // voronoi cell and tool tip
+          voronoi = d3.voronoi()
+            .x(function(d) { return projection(d.geometry.coordinates)[0]; })
+            .y(function(d) { return projection(d.geometry.coordinates)[1]; })
+            .size([width, height]);
+          tip = d3.select("#tip");
+          cells = svgGroup
+            .selectAll(".cell")
+              .data(voronoi.polygons(qldData.features))
+            .enter().append("g")
+              .classed("cell", true);
           // re-render SVGs upon movement
           map.on("viewreset", render)
             .on("move", render)
             .on("move", render);
+          begin();
           // initial zoom
           map.fitBounds(d3.geoBounds(qldData), {
             animate: false,
             padding: margin
           });
-          begin();
         });
       });
 
       function begin() {
-        hospitals = svgGroup
-          .selectAll(".hospital")
-            .data(qldData.features)
-          .enter().append("path")
+        hospitals = cells
+          .append("path")
             .classed("hospital", true)
-            .attr("d", path);
+            .attr("d", function(d) { return !d ? null : path(d.data); });
+        interactionCells = cells
+          .append("path")
+            .classed("voronoi", true)
+            .attr("d", function(d) { return !d ? null : d3.line()(d) + "z"; })
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
         hospitals.transition()
           .duration(1000)
           .delay(function(d, i) { return i * 1000 / qldData.features.length; })
-          .style("opacity", function(d) { return d.properties.start ? .8 : 0; });
+          .style("opacity", function(d) { return !d ? 0 : d.data.properties.start ? .8 : 0; });
         year = 1996;
         ticker.select("#year")
           .text(year);
@@ -109,7 +125,7 @@
           ticker.select("#year")
             .text(year);
           hospitals.each(function(d) {
-            if (d.properties.open == year) {
+            if (d && d.data.properties.open == year) {
               d3.select(this)
                 .style("opacity", 1)
                 .style("fill", "white")
@@ -117,17 +133,15 @@
                   .duration(500)
                   .style("opacity", .8)
                   .style("fill", "#01CFFF");
-              console.log("open: " + d.properties.hospital);
             }
-            if (d.properties.close == year) {
+            if (d && d.data.properties.close == year) {
               d3.select(this)
                 .style("opacity", 1)
-                .style("fill", "#FFB300")
+                .style("fill", "#1C1C1C")
                 .transition()
                   .duration(500)
-                  .style("opacity", .8)
-                  .style("fill", "#FF6100");
-              console.log("close: " + d.properties.hospital);
+                  .style("fill", "#FF6100")
+                  .style("opacity", .8);
             }
           });
           year++;
@@ -140,14 +154,19 @@
 
       function reset() {
         hospitals.transition()
-          .duration(1000)
-          .delay(function(d, i) { return i * 1000 / qldData.features.length; })
-          .style("opacity", function(d) { return d.properties.start ? .8 : 0; })
+          .duration(2000)
+          .style("opacity", function(d) { return !d ? null : d.data.properties.start ? .8 : 0; })
           .style("fill", "#01CFFF");
         year = 1996;
         ticker.select("#year")
-          .text(year);
-        d3.timeout(timer, 1000);
+          .transition()
+            .duration(2000)
+            .tween("text", function() {
+              return function(t) {
+                ticker.select("#year").text(Math.round(2018 - t * 22));
+              };
+            });
+        d3.timeout(timer, 3000);
       }
 
       // re-renders SVG when map moves
@@ -155,9 +174,11 @@
         projection = calcProjection();
         path.projection(projection);
         // draw SVGs
-        d3.selectAll(".hospital")
-          .attr("d", path);
+        hospitals.attr("d", function(d) { return !d ? null : path(d.data); });
+        interactionCells.data(voronoi.polygons(qldData.features))
+          .attr("d", function(d) { return !d ? null : d3.line()(d) + "z"; });
       }
+
       // recalculates D3 map projection when map moves
       function calcProjection() {
         height = document.body.getBoundingClientRect().height;
@@ -169,6 +190,41 @@
           .center([center.lng, center.lat])
           .translate([width / 2, height / 2])
           .scale(scale);
+      }
+
+      // mouseover or touch
+      function mouseover(d) {
+        d3.select(this.parentNode)
+          .select(".hospital")
+            .attr("d", function(d) { return path.pointRadius(width < 500 ? 7.5 : 10.5)(d.data)});
+        centroid = projection(d.data.geometry.coordinates);
+        tip.style("opacity", 0)
+          .style("top", "0px") // reset position to tool tip for correct sizing
+          .style("left", "0px")
+          .text(d.data.properties.hospital);
+        // set location of tool tip to ensure it's always inside chart
+        let tipWidth = parseFloat(tip.style("width"));
+        let tipHeight = parseFloat(tip.style("height"));
+        tip.style("top", function() {
+          return centroid[1] + tipHeight + 32 > height ?
+            (centroid[1] - tipHeight - 32) + "px":
+            (centroid[1] + 16) + "px";
+          })
+          .style("left", function() {
+            return centroid[0] + (tipWidth / 2) + 16 > width ?
+              (width - tipWidth - 16) + "px" :
+              centroid[0] - (tipWidth / 2) - 16 < 0 ?
+              "16px" :
+              (centroid[0] - (tipWidth / 2)) + "px";
+          })
+          .style("opacity", 1);
+      }
+
+      function mouseout(d) {
+        d3.select(this.parentNode)
+          .select(".hospital")
+            .attr("d", function(d) { return path.pointRadius(width < 500 ? 5 : 7)(d.data); });
+        tip.style("opacity", 0);
       }
     </script>
   </body>
