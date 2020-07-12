@@ -64,7 +64,8 @@ body {
 }
 .legend div:last-child {
   margin: 0 0 .25rem .5rem;
-  width: .75rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 1rem;
   border: solid 1px #1C1C1C;
   background-color: white;
